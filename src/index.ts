@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express'
 import cors from 'cors'
 import { TAccountDB, TAccountDBPost, TUserDB, TUserDBPost } from './types'
 import { db } from './database/knex'
+import { User } from './models/User'
 
 const app = express()
 
@@ -44,7 +45,16 @@ app.get("/users", async (req: Request, res: Response) => {
             usersDB = result
         }
 
-        res.status(200).send(usersDB)
+        const users: User[] = usersDB.map((userDB) => new User(
+            userDB.id,
+            userDB.name,
+            userDB.email,
+            userDB.password,
+            userDB.created_at
+        ))
+
+        res.status(200).send(users)
+
     } catch (error) {
         console.log(error)
 
@@ -91,17 +101,36 @@ app.post("/users", async (req: Request, res: Response) => {
             throw new Error("'id' já existe")
         }
 
-        const newUser: TUserDBPost = {
+        // const newUser: TUserDBPost = {
+        //     id,
+        //     name,
+        //     email,
+        //     password
+        // }
+
+
+        // INSTANCIAR
+        const newUser = new User(
             id,
             name,
             email,
-            password
+            password,
+            new Date().toISOString()
+        )
+
+        // MODELAR
+        const newUserDB = {
+            id: newUser.getUserId(),
+            name: newUser.getUserName(),
+            email: newUser.getUserEmail(),
+            password: newUser.getUserPassword(),
+            created_at: newUser.getCreatedAt()
         }
 
-        await db("users").insert(newUser)
-        const [ userDB ]: TUserDB[] = await db("users").where({ id })
+        await db("users").insert(newUserDB)
+        // const [ userDB ]: TUserDB[] = await db("users").where({ id })
 
-        res.status(201).send(userDB)
+        res.status(201).send(newUser)
     } catch (error) {
         console.log(error)
 
